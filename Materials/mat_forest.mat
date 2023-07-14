@@ -130,10 +130,10 @@ Material:
     - _thickness: 0.5
     - _whiteness: 0
     m_Colors:
-    - _BaseColor: {r: 0.0141509175, g: 1, b: 0.03092089, a: 1}
+    - _BaseColor: {r: 0.31484655, g: 0.5283019, b: 0, a: 1}
     - _BaseColorAddSubDiff: {r: 0, g: 0, b: 0, a: 0}
     - _CameraFadeParams: {r: 0, g: 0, b: 0, a: 0}
-    - _Color: {r: 0.0141509175, g: 1, b: 0.03092089, a: 1}
+    - _Color: {r: 0.31484655, g: 0.5283019, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _SoftParticleFadeParams: {r: 0, g: 0, b: 0, a: 0}
