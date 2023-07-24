@@ -55,11 +55,6 @@ public class MapXMLParser : MonoBehaviour
 
     private void Update()
     {
-        if(Input.GetKeyDown(KeyCode.A))
-        {
-
-            Debug.LogError(Application.persistentDataPath);
-        }
         if (cameraMover.transform.position.x > maxX) { cameraMover.allowRight = false; }
         else { cameraMover.allowRight = true; }
 
