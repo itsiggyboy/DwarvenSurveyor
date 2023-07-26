@@ -40,8 +40,8 @@ public class MouseCoords : MonoBehaviour
             {
                 lastMat.SetFloat("_whiteness", 0f);
             }
-            lastMat = xmlParser.regionDataMap[x, y].material;
-            xmlParser.regionDataMap[x, y].material.SetFloat("_whiteness", 0.6f);
+            //lastMat = xmlParser.regionDataMap[x, y].material;
+            //xmlParser.regionDataMap[x, y].material.SetFloat("_whiteness", 0.6f);
         }
     }
 }

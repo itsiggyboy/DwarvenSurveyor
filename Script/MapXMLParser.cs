@@ -120,22 +120,330 @@ public class MapXMLParser : MonoBehaviour
         List<RegionDataPlus> regionsPlus = new List<RegionDataPlus>();
         List<RegionDataNormal> regionsNormal = new List<RegionDataNormal>();
 
-        //Regular XML
+         XmlReader reader = XmlReader.Create(new StreamReader(xmlPath, System.Text.Encoding.UTF8));
+        bool isInsideSiteElement = false;
+        bool isInsideStructureElement = false;
 
-        XmlDocument xml = new XmlDocument();
-        xml.Load(xmlPath);
+        //SITE REGULAR XML
+        SiteData sData = new SiteData();
+        // Iterate over the nodes in the XML document.
 
-        XmlNodeList siteNodes = xml.GetElementsByTagName("site");
-
-        foreach (XmlNode siteNode in siteNodes)
+        while (reader.Read())
         {
-            SiteData data = new SiteData();
+            if (reader.NodeType == XmlNodeType.Element)
+            {
+                if (reader.Name == "site")
+                {
+                    isInsideSiteElement = true;
+                    sData = new SiteData();
+                    // Process attributes of the "site" element if needed.
+                    // e.g., if the "site" element has an "id" attribute:
+                    // int id = int.Parse(reader.GetAttribute("id"));
+                }
+                else if (reader.Name == "structure")
+                {
+                    isInsideStructureElement = true;
+                }
+                else if (isInsideSiteElement && !isInsideStructureElement)
+                {
+                    switch (reader.Name)
+                    {
+                        case "type":
+                            sData.type = reader.ReadElementContentAsString();
+                            break;
 
-            data.name = siteNode.SelectSingleNode("name").InnerText;
-            data.type = siteNode.SelectSingleNode("type").InnerText;
+                        case "name":
+                            sData.name = reader.ReadElementContentAsString();
+                            break;
 
+                        case "coords":
+                            reader.ReadStartElement();
+                            string coordString = reader.Value;
+                            string[] coordArray = coordString.Split(',');
+                            sData.coord = new Vector2Int(int.Parse(coordArray[0]), int.Parse(coordArray[1]));
+                            break;
+
+                        case "rectangle":
+                            reader.ReadStartElement();
+                            string rectString = reader.Value;
+                            string[] rectCoords = rectString.Split(':', ',');
+                            int xMin = int.Parse(rectCoords[0]);
+                            int yMin = int.Parse(rectCoords[1]);
+                            int xMax = int.Parse(rectCoords[2]);
+                            int yMax = int.Parse(rectCoords[3]);
+                            sData.rectangle = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
+                            break;
+                    }
+                }
+            }
+
+            if (reader.NodeType == XmlNodeType.EndElement)
+            {
+                if (reader.Name == "site")
+                {
+                    sites.Add(sData);
+                    isInsideSiteElement = false;
+                    sData = null;
+                }
+                else if (reader.Name == "structure")
+                {
+                    isInsideStructureElement = false;
+                }
+            }
+        }
+        //while (reader.Read())
+        //{
+        //    // Check the node type.
+        //    if (reader.NodeType == XmlNodeType.Element)
+        //    {
+        //        // Get the node name.
+        //        string name = reader.Name;
+
+        //        switch (name)
+        //        {
+        //            case "site":
+        //                if (reader.IsStartElement())
+        //                {
+        //                    sData = new SiteData();
+        //                    isInsideElement = true;
+        //                }
+        //                break;
+        //            case "name":
+        //                if(isInsideElement)
+        //                {
+        //                    reader.ReadStartElement();
+        //                    sData.name = reader.Value;
+        //                }
+        //                break;
+        //            case "type":
+        //                if(isInsideElement)
+        //                {
+        //                    reader.ReadStartElement();
+        //                    sData.type = reader.Value;
+        //                }
+        //                break;
+        //            case "coords":
+        //                if(isInsideElement)
+        //                {
+        //                    reader.ReadStartElement();
+        //                    string coordString = reader.Value;
+        //                    string[] coordArray = coordString.Split(',');
+        //                    sData.coord = new Vector2Int(int.Parse(coordArray[0]), int.Parse(coordArray[1]));
+        //                }
+        //                break;
+        //            case "rectangle":
+        //                if(isInsideElement)
+        //                {
+        //                    reader.ReadStartElement();
+        //                    string rectString = reader.Value;
+        //                    string[] rectCoords = rectString.Split(':', ',');
+        //                    int xMin = int.Parse(rectCoords[0]);
+        //                    int yMin = int.Parse(rectCoords[1]);
+        //                    int xMax = int.Parse(rectCoords[2]);
+        //                    int yMax = int.Parse(rectCoords[3]);
+        //                    sData.rectangle = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
+        //                }
+        //                break;
+        //            default:
+        //                // Do nothing.
+        //                break;
+        //        }
+        //    }
+        //    if (reader.NodeType == XmlNodeType.EndElement)
+        //    {
+        //        if (reader.Name == "site")
+        //        {
+        //            sites.Add(sData);
+        //            isInsideElement = false;
+        //        }
+        //    }
+        //}
+        for (int i = 0; i < sites.Count; i++)
+        {
+            sites[i].typeIndex = SiteTypeStringToTypeIndex(sites[i].type);
+        }
+
+        //REGION REGULAR XML
+        XmlReader readerRegion = XmlReader.Create(new StreamReader(xmlPath, System.Text.Encoding.UTF8));
+        RegionDataNormal rDataNormal = new RegionDataNormal();
+        // Iterate over the nodes in the XML document.
+
+        while (readerRegion.Read())
+        {
+            // Check the node type.
+            if (readerRegion.NodeType == XmlNodeType.Element)
+            {
+                // Get the node name.
+                string name = readerRegion.Name;
+
+                switch (name)
+                {
+                    case "region":
+                        if (readerRegion.IsStartElement())
+                        {
+                            rDataNormal = new RegionDataNormal();
+                        }
+                        break;
+                    case "name":
+                        readerRegion.ReadStartElement();
+                        rDataNormal.name = readerRegion.Value;
+                        break;
+                    case "type":
+                            readerRegion.ReadStartElement();
+                            rDataNormal.type = readerRegion.Value;
+                        break;
+                    default:
+                        // Do nothing.
+                        break;
+                }
+            }
+            if (readerRegion.NodeType == XmlNodeType.EndElement)
+            {
+                if (readerRegion.Name == "region")
+                {
+                    regionsNormal.Add(rDataNormal);
+                }
+            }
+        }
+
+        //SITE XML PLUS
+        XmlReader readerPlus = XmlReader.Create(new StreamReader(xmlPlusPath, System.Text.Encoding.ASCII));
+
+        RegionDataPlus rDataPlus = new RegionDataPlus();
+
+        // Iterate over the nodes in the XML document.
+        while (readerPlus.Read())
+        {
+            // Check the node type.
+            if (readerPlus.NodeType == XmlNodeType.Element)
+            {
+                // Get the node name.
+                string name = readerPlus.Name;
+
+                switch (name)
+                {
+                    case "region":
+                        if (readerPlus.IsStartElement())
+                        {
+                            rDataPlus = new RegionDataPlus();
+                        }
+                        break;
+                    case "evilness":
+                        readerPlus.ReadStartElement();
+                        rDataPlus.evilness = readerPlus.Value;
+                        break;
+                    case "coords":
+                        readerPlus.ReadStartElement();
+                        string coordString = readerPlus.Value;
+                        rDataPlus.coords = ParseCoordinates(coordString);
+                        break;
+                    default:
+                        // Do nothing.
+                        break;
+                }
+            }
+            if (readerPlus.NodeType == XmlNodeType.EndElement)
+            {
+                if (readerPlus.Name == "region")
+                {
+                    regionsPlus.Add(rDataPlus);
+                }
+            }
+        }
+
+        for (int i = 0; i < regionsNormal.Count; i++)
+        {
+            RegionData rData = new RegionData();
+            rData.name = regionsNormal[i].name;
+            rData.type = regionsNormal[i].type;
+            rData.typeIndex = StringRegionTypeToInt(regionsNormal[i].type);
+            rData.coords = regionsPlus[i].coords;
+            rData.evilness = regionsPlus[i].evilness;
+            regions.Add(rData);
+        }
+
+        ////XML Plus
+
+        //XmlDocument xmlPlus = new XmlDocument();
+        //xmlPlus.Load(xmlPlusPath);
+
+        //XmlNodeList regionNodesPlus = xmlPlus.GetElementsByTagName("region");
+
+        //foreach (XmlNode regionNodePlus in regionNodesPlus)
+        //{
+        //    RegionDataPlus data = new RegionDataPlus();
+
+        //    XmlNode evilnessNode = regionNodePlus.SelectSingleNode("evilness");
+        //    data.evilness = evilnessNode.InnerText;
+
+        //    XmlNode coordsNode = regionNodePlus.SelectSingleNode("coords");
+        //    string rawCoords = coordsNode.InnerText;
+
+        //    //Debug.Log("Trying to parse " + rawCoords);
+        //    data.coords = ParseCoordinates(rawCoords);
+
+        //    regionsPlus.Add(data);
+        //}
+        ////Debug.Log("Normal count " + regionsNormal.Count);
+        ////Debug.Log("Plus count " + regionsPlus.Count);
+
+        InstantiateSites();
+
+        for (int i = 0; i < regions.Count; i++)
+        {
+            if (regions[i].coords.Length < 10000)
+            {
+                GenerateRegionMesh(i, regions[i].coords, regions[i].name, regions[i].type);
+            }
+            else
+            {
+                Vector2Int[][] separatedArrays = SeparateArray(regions[i].coords);
+
+                GenerateRegionMesh(i, separatedArrays[0], regions[i].name, regions[i].type);
+                GenerateRegionMesh(i, separatedArrays[1], regions[i].name, regions[i].type);
+                GenerateRegionMesh(i, separatedArrays[2], regions[i].name, regions[i].type);
+                GenerateRegionMesh(i, separatedArrays[3], regions[i].name, regions[i].type);
+            }
+        }//Create Region Meshes
+
+        regionDataMap = new RegionData[(int)maxX + 1, (int)maxY + 1];
+        //Debug.Log("Region map created with x " + (int)maxX + ",y " + (int)maxY);
+        for (int i = 0; i < regions.Count; i++)
+        {
+            //Debug.Log("--------Scanning region " + i + " - " + regions[i].name);
+            for (int u = 0; u < regions[i].coords.Length; u++)
+            {
+                //Debug.Log("-Coord " + u + " | " + "regionDataMap[" + regions[i].coords[u].x + "," + regions[i].coords[u].y + "]");
+                RegionData rd = new RegionData();
+                rd.name = regions[i].name;
+                rd.type = regions[i].type;
+                rd.evilness = regions[i].evilness;
+                rd.coords = regions[i].coords;
+                regionDataMap[regions[i].coords[u].x, regions[i].coords[u].y] = rd;
+
+            }
+        }//Assigns region data to each tile
+        regionDataMap = InvertRegionDataArrayOnYAxis(regionDataMap);
+        //Array.Reverse(regionDataMap);
+
+        if (regionParent != null)
+        {
+            regionParent.eulerAngles = new Vector3(180, 0, 0);
+            regionParent.transform.position = new Vector3(0, maxY, 0);
+            regionParent.transform.localScale = new Vector3(regionScaleFactor, regionScaleFactor, regionScaleFactor);
+        }
+        if (siteParent != null)
+        {
+            siteParent.eulerAngles = new Vector3(180, 0, 0);
+            siteParent.transform.localPosition = new Vector3(0, maxY, -0.1f);
+            siteParent.transform.localScale = new Vector3(siteScaleFactor, siteScaleFactor, siteScaleFactor);
+        }
+    }//Parse XML
+
+    private int SiteTypeStringToTypeIndex(string typeString)
+    {
             int typeIndex = -1;
-            switch (data.type)
+            switch (typeString)
             {
                 case "camp":
                     typeIndex = 0;
@@ -197,130 +505,10 @@ public class MapXMLParser : MonoBehaviour
                 case "vault":
                     typeIndex = 19;
                     break;
-            }
-            data.typeIndex = typeIndex;
-
-            string coordString = siteNode.SelectSingleNode("coords").InnerText;
-            string[] coordArray = coordString.Split(',');
-            data.coord = new Vector2Int(int.Parse(coordArray[0]), int.Parse(coordArray[1]));
-
-            XmlNode rectNode = siteNode.SelectSingleNode("rectangle");
-            string rectString = rectNode.InnerText;
-            string[] rectCoords = rectString.Split(':', ',');
-
-            int xMin = int.Parse(rectCoords[0]);
-            int yMin = int.Parse(rectCoords[1]);
-            int xMax = int.Parse(rectCoords[2]);
-            int yMax = int.Parse(rectCoords[3]);
-
-            data.rectangle = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
-
-            sites.Add(data);
         }
+        return typeIndex;
+    }
 
-        XmlNodeList regionNodes = xml.GetElementsByTagName("region");
-
-        foreach (XmlNode regionNodeNormal in regionNodes)
-        {
-            RegionDataNormal data = new RegionDataNormal();
-
-            XmlNode nameNode = regionNodeNormal.SelectSingleNode("name");
-            data.name = nameNode.InnerText;
-
-            XmlNode typeNode = regionNodeNormal.SelectSingleNode("type");
-            data.type = typeNode.InnerText;
-
-            regionsNormal.Add(data);
-        }
-
-        //XML Plus
-
-        XmlDocument xmlPlus = new XmlDocument();
-        xmlPlus.Load(xmlPlusPath);
-
-        XmlNodeList regionNodesPlus = xmlPlus.GetElementsByTagName("region");
-
-        foreach (XmlNode regionNodePlus in regionNodesPlus)
-        {
-            RegionDataPlus data = new RegionDataPlus();
-
-            XmlNode evilnessNode = regionNodePlus.SelectSingleNode("evilness");
-            data.evilness = evilnessNode.InnerText;
-
-            XmlNode coordsNode = regionNodePlus.SelectSingleNode("coords");
-            string rawCoords = coordsNode.InnerText;
-
-            //Debug.Log("Trying to parse " + rawCoords);
-            data.coords = ParseCoordinates(rawCoords);
-
-            regionsPlus.Add(data);
-        }
-        //Debug.Log("Normal count " + regionsNormal.Count);
-        //Debug.Log("Plus count " + regionsPlus.Count);
-
-        for (int i = 0; i < regionsNormal.Count; i++)
-        {
-            RegionData data = new RegionData();
-            data.name = regionsNormal[i].name;
-            data.type = regionsNormal[i].type;
-            data.coords = regionsPlus[i].coords;
-            data.evilness = regionsPlus[i].evilness;
-            regions.Add(data);
-        }
-
-        InstantiateSites();
-
-        for (int i = 0; i < regions.Count; i++)
-        {
-            if(regions[i].coords.Length < 10000)
-            {
-                GenerateRegionMesh(i,regions[i].coords, regions[i].name, regions[i].type);
-            }
-            else
-            {
-                Vector2Int[][] separatedArrays = SeparateArray(regions[i].coords);
-
-                GenerateRegionMesh(i,separatedArrays[0], regions[i].name, regions[i].type);
-                GenerateRegionMesh(i,separatedArrays[1], regions[i].name, regions[i].type);
-                GenerateRegionMesh(i,separatedArrays[2], regions[i].name, regions[i].type);
-                GenerateRegionMesh(i,separatedArrays[3], regions[i].name, regions[i].type);
-            }
-        }//Create Region Meshes
-
-        regionDataMap = new RegionData[(int)maxX + 1, (int)maxY + 1];
-        //Debug.Log("Region map created with x " + (int)maxX + ",y " + (int)maxY);
-        for (int i = 0; i < regions.Count; i++)
-        {
-            //Debug.Log("--------Scanning region " + i + " - " + regions[i].name);
-            for (int u = 0; u < regions[i].coords.Length; u++)
-            {
-                //Debug.Log("-Coord " + u + " | " + "regionDataMap[" + regions[i].coords[u].x + "," + regions[i].coords[u].y + "]");
-                RegionData rd = new RegionData();
-                rd.name = regions[i].name;
-                rd.type = regions[i].type;
-                rd.evilness = regions[i].evilness;
-                rd.coords = regions[i].coords;
-                rd.material = regions[i].material;
-                regionDataMap[regions[i].coords[u].x, regions[i].coords[u].y] = rd;
-
-            }
-        }//Assigns region data to each tile
-        regionDataMap = InvertRegionDataArrayOnYAxis(regionDataMap);
-        //Array.Reverse(regionDataMap);
-
-        if (regionParent != null)
-        {
-            regionParent.eulerAngles = new Vector3(180, 0, 0);
-            regionParent.transform.position = new Vector3(0, maxY, 0);
-            regionParent.transform.localScale = new Vector3(regionScaleFactor, regionScaleFactor, regionScaleFactor);
-        }
-        if (siteParent != null)
-        {
-            siteParent.eulerAngles = new Vector3(180, 0, 0);
-            siteParent.transform.localPosition = new Vector3(0, maxY, -0.1f);
-            siteParent.transform.localScale = new Vector3(siteScaleFactor, siteScaleFactor, siteScaleFactor);
-        }
-    }//Parse XML
     private Vector2Int[][] SeparateArray(Vector2Int[] originalArray)
     {
         int numArrays = 4;
@@ -374,6 +562,10 @@ public class MapXMLParser : MonoBehaviour
                 _site.coord = sites[i].coord;
                 _site.uiPanel = uiPanelScript;
                 //Debug.Log("Attempting " + _site.type);
+                if(sites[i].typeIndex == -1)
+                {
+                    Debug.LogError("site " + i + " (" + sites[i].type + ") has a value of -1.");
+                }
                 _site.spriteR.color = siteRenderInfo[sites[i].typeIndex].color;
                 instantiatedSite.transform.localScale = new Vector3(sites[i].rectangle.width, sites[i].rectangle.height, 0);
                 instantiatedSite.transform.position = new Vector3(sites[i].rectangle.x, sites[i].rectangle.y, -1);
@@ -458,7 +650,6 @@ public class MapXMLParser : MonoBehaviour
 
         // Create a new game object with a mesh renderer and filter
         GameObject meshObject = new GameObject("FlatMesh");
-        MaterialResetter matRes = meshObject.AddComponent<MaterialResetter>();
         MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
         MeshFilter meshFilter = meshObject.AddComponent<MeshFilter>();
 
@@ -484,17 +675,9 @@ public class MapXMLParser : MonoBehaviour
         meshFilter.mesh = mesh;
         //meshObject.transform.position = new Vector3(coordinates[0].x,coordinates[0].y,0);
         meshObject.transform.eulerAngles = new Vector3(-90, 0, 0);
+        meshRenderer.material = regionMaterials[StringRegionTypeToInt(type)];
 
         // Optionally, attach a material to the mesh renderer for visualization
-        regions[regionIndex].material = new Material(regionMaterials[StringTypeToInt(type)]);
-        regions[regionIndex].material.name = "mat_" + regions[regionIndex].name;
-        regions[regionIndex].typeIndex = StringTypeToInt(type);
-        matRes.material = regions[regionIndex].material;
-        matRes.initialColor = regions[regionIndex].material.color;
-        Material[] mats = new Material[2];
-        mats[0] = regions[regionIndex].material;
-        //mats[1] = outlineMaterial;
-        meshRenderer.materials = mats;
 
         FlipNormals(meshFilter);
     }//GenerateMesh
@@ -562,7 +745,7 @@ public class MapXMLParser : MonoBehaviour
         regionColliderParent.localScale = new Vector3(1, 1, 1);
     }
    
-    public int StringTypeToInt(string type)
+    public int StringRegionTypeToInt(string type)
     {
         //0wetland, 1forest, 2grassland, 3hills, 4desert, 5lake, 6tundra, 7glacier, 8ocean, 9mountains
         int i = 10;
@@ -680,8 +863,6 @@ public class RegionData
     public string evilness;
     public int typeIndex;
     public Vector2Int[] coords;
-    public Material material;
-    public Material outlineMat;
 }
 
 public class RegionDataNormal
