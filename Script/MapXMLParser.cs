@@ -266,6 +266,7 @@ public class MapXMLParser : MonoBehaviour
         //REGION REGULAR XML
         XmlReader readerRegion = XmlReader.Create(new StreamReader(xmlPath, System.Text.Encoding.UTF8));
         RegionDataNormal rDataNormal = new RegionDataNormal();
+        bool isInsideRegionElement = false;
         // Iterate over the nodes in the XML document.
 
         while (readerRegion.Read())
@@ -273,35 +274,34 @@ public class MapXMLParser : MonoBehaviour
             // Check the node type.
             if (readerRegion.NodeType == XmlNodeType.Element)
             {
-                // Get the node name.
-                string name = readerRegion.Name;
 
-                switch (name)
+                if(readerRegion.Name == "region")
                 {
-                    case "region":
-                        if (readerRegion.IsStartElement())
-                        {
-                            rDataNormal = new RegionDataNormal();
-                        }
-                        break;
-                    case "name":
-                        readerRegion.ReadStartElement();
-                        rDataNormal.name = readerRegion.Value;
-                        break;
-                    case "type":
-                            readerRegion.ReadStartElement();
-                            rDataNormal.type = readerRegion.Value;
-                        break;
-                    default:
-                        // Do nothing.
-                        break;
+                    isInsideRegionElement = true;
+                    rDataNormal = new RegionDataNormal();
+                }else if(isInsideRegionElement)
+                {
+                    switch (readerRegion.Name)
+                    {
+                        case "name":
+                            rDataNormal.name = readerRegion.ReadElementContentAsString();
+                            break;
+                        case "type":
+                            rDataNormal.type = readerRegion.ReadElementContentAsString(); ;
+                            break;
+                        default:
+                            // Do nothing.
+                            break;
+                    }
                 }
+                
             }
             if (readerRegion.NodeType == XmlNodeType.EndElement)
             {
                 if (readerRegion.Name == "region")
                 {
                     regionsNormal.Add(rDataNormal);
+                    isInsideRegionElement = false;
                 }
             }
         }
@@ -311,6 +311,7 @@ public class MapXMLParser : MonoBehaviour
 
         RegionDataPlus rDataPlus = new RegionDataPlus();
 
+        bool isInsideRegionPlus = false;
         // Iterate over the nodes in the XML document.
         while (readerPlus.Read())
         {
@@ -318,28 +319,25 @@ public class MapXMLParser : MonoBehaviour
             if (readerPlus.NodeType == XmlNodeType.Element)
             {
                 // Get the node name.
-                string name = readerPlus.Name;
-
-                switch (name)
+                if(readerPlus.Name == "region")
                 {
-                    case "region":
-                        if (readerPlus.IsStartElement())
-                        {
-                            rDataPlus = new RegionDataPlus();
-                        }
-                        break;
-                    case "evilness":
-                        readerPlus.ReadStartElement();
-                        rDataPlus.evilness = readerPlus.Value;
-                        break;
-                    case "coords":
-                        readerPlus.ReadStartElement();
-                        string coordString = readerPlus.Value;
-                        rDataPlus.coords = ParseCoordinates(coordString);
-                        break;
-                    default:
-                        // Do nothing.
-                        break;
+                    isInsideRegionPlus = true;
+                    rDataPlus = new RegionDataPlus();
+                }else if (isInsideRegionPlus)
+                {
+                    switch (readerPlus.Name)
+                    {
+                        case "evilness":
+                            rDataPlus.evilness = readerPlus.ReadElementContentAsString();
+                            break;
+                        case "coords":
+                            string coordString = readerPlus.ReadElementContentAsString();
+                            rDataPlus.coords = ParseCoordinates(coordString);
+                            break;
+                        default:
+                            // Do nothing.
+                            break;
+                    }
                 }
             }
             if (readerPlus.NodeType == XmlNodeType.EndElement)
@@ -347,6 +345,7 @@ public class MapXMLParser : MonoBehaviour
                 if (readerPlus.Name == "region")
                 {
                     regionsPlus.Add(rDataPlus);
+                    isInsideRegionPlus = false;
                 }
             }
         }
@@ -361,31 +360,6 @@ public class MapXMLParser : MonoBehaviour
             rData.evilness = regionsPlus[i].evilness;
             regions.Add(rData);
         }
-
-        ////XML Plus
-
-        //XmlDocument xmlPlus = new XmlDocument();
-        //xmlPlus.Load(xmlPlusPath);
-
-        //XmlNodeList regionNodesPlus = xmlPlus.GetElementsByTagName("region");
-
-        //foreach (XmlNode regionNodePlus in regionNodesPlus)
-        //{
-        //    RegionDataPlus data = new RegionDataPlus();
-
-        //    XmlNode evilnessNode = regionNodePlus.SelectSingleNode("evilness");
-        //    data.evilness = evilnessNode.InnerText;
-
-        //    XmlNode coordsNode = regionNodePlus.SelectSingleNode("coords");
-        //    string rawCoords = coordsNode.InnerText;
-
-        //    //Debug.Log("Trying to parse " + rawCoords);
-        //    data.coords = ParseCoordinates(rawCoords);
-
-        //    regionsPlus.Add(data);
-        //}
-        ////Debug.Log("Normal count " + regionsNormal.Count);
-        ////Debug.Log("Plus count " + regionsPlus.Count);
 
         InstantiateSites();
 
