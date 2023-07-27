@@ -12,6 +12,7 @@ public class MapXMLParser : MonoBehaviour
     public Material[] regionMaterials;//0wetland, 1forest, 2grassland, 3hills, 4desert, 5lake, 6tundra, 7glacier, 8ocean, 9mountains
     public Material outlineMaterial;
     public Color[] regionColors;
+    public List<GameObject> regionMeshes = new List<GameObject>();
 
     public RegionData[,] regionDataMap;
 
@@ -355,6 +356,7 @@ public class MapXMLParser : MonoBehaviour
             RegionData rData = new RegionData();
             rData.name = regionsNormal[i].name;
             rData.type = regionsNormal[i].type;
+            rData.index = i;
             rData.typeIndex = StringRegionTypeToInt(regionsNormal[i].type);
             rData.coords = regionsPlus[i].coords;
             rData.evilness = regionsPlus[i].evilness;
@@ -380,6 +382,7 @@ public class MapXMLParser : MonoBehaviour
             }
         }//Create Region Meshes
 
+
         regionDataMap = new RegionData[(int)maxX + 1, (int)maxY + 1];
         //Debug.Log("Region map created with x " + (int)maxX + ",y " + (int)maxY);
         for (int i = 0; i < regions.Count; i++)
@@ -393,6 +396,7 @@ public class MapXMLParser : MonoBehaviour
                 rd.type = regions[i].type;
                 rd.evilness = regions[i].evilness;
                 rd.coords = regions[i].coords;
+                rd.index = regions[i].index;
                 regionDataMap[regions[i].coords[u].x, regions[i].coords[u].y] = rd;
 
             }
@@ -626,7 +630,6 @@ public class MapXMLParser : MonoBehaviour
         GameObject meshObject = new GameObject("FlatMesh");
         MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
         MeshFilter meshFilter = meshObject.AddComponent<MeshFilter>();
-
         if (parent != null)
         {
             if (regionParent == null)
@@ -650,12 +653,16 @@ public class MapXMLParser : MonoBehaviour
         //meshObject.transform.position = new Vector3(coordinates[0].x,coordinates[0].y,0);
         meshObject.transform.eulerAngles = new Vector3(-90, 0, 0);
         meshRenderer.material = regionMaterials[StringRegionTypeToInt(type)];
-
+        regionMeshes.Add(meshObject);
         // Optionally, attach a material to the mesh renderer for visualization
 
         FlipNormals(meshFilter);
     }//GenerateMesh
 
+    public int RegionCoordsToRegionIndex(int x, int y)
+    {
+        return regionDataMap[x, y].index;
+    }
     private void FlipNormals(MeshFilter meshFilter)
     {
         // Check if the MeshFilter component and mesh exist
@@ -687,6 +694,7 @@ public class MapXMLParser : MonoBehaviour
             mesh.RecalculateNormals();
         }
     }
+
 
     private void CreateRegionColliders()
     {
@@ -836,6 +844,7 @@ public class RegionData
     public string type;
     public string evilness;
     public int typeIndex;
+    public int index;
     public Vector2Int[] coords;
 }
 
