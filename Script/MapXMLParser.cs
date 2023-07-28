@@ -14,6 +14,8 @@ public class MapXMLParser : MonoBehaviour
     public Color[] regionColors;
     public List<GameObject> regionMeshes = new List<GameObject>();
 
+    public Transform semiTransparentQuad;
+
     public RegionData[,] regionDataMap;
 
     public SitePanel uiPanelScript;
@@ -369,21 +371,62 @@ public class MapXMLParser : MonoBehaviour
         {
             if (regions[i].coords.Length < 10000)
             {
-                GenerateRegionMesh(i, regions[i].coords, regions[i].name, regions[i].type);
+                GameObject go = GenerateRegionMesh(i, regions[i].coords, regions[i].name, regions[i].type);
+                if (parent != null)
+                {
+                    if (regionParent == null)
+                    {
+                        GameObject regionParentLocal = new GameObject();
+                        regionParentLocal.transform.parent = parent;
+                        regionParentLocal.name = "Regions";
+                        regionParent = regionParentLocal.transform;
+                        go.transform.parent = regionParent.transform;
+                    }
+                    else
+                    {
+                        go.transform.parent = regionParent.transform;
+                    }
+
+                }
+                regionMeshes.Add(go);
             }
             else
             {
                 Vector2Int[][] separatedArrays = SeparateArray(regions[i].coords);
+                GameObject fourMeshes = new GameObject();
+                GameObject mesh1 = GenerateRegionMesh(i, separatedArrays[0], regions[i].name, regions[i].type);
+                mesh1.transform.parent = fourMeshes.transform;
+                GameObject mesh2 = GenerateRegionMesh(i, separatedArrays[1], regions[i].name, regions[i].type);
+                mesh2.transform.parent = fourMeshes.transform;
+                GameObject mesh3 = GenerateRegionMesh(i, separatedArrays[2], regions[i].name, regions[i].type);
+                mesh3.transform.parent = fourMeshes.transform;
+                GameObject mesh4 = GenerateRegionMesh(i, separatedArrays[3], regions[i].name, regions[i].type);
+                mesh4.transform.parent = fourMeshes.transform;
 
-                GenerateRegionMesh(i, separatedArrays[0], regions[i].name, regions[i].type);
-                GenerateRegionMesh(i, separatedArrays[1], regions[i].name, regions[i].type);
-                GenerateRegionMesh(i, separatedArrays[2], regions[i].name, regions[i].type);
-                GenerateRegionMesh(i, separatedArrays[3], regions[i].name, regions[i].type);
+                if (parent != null)
+                {
+                    fourMeshes.name = mesh1.name;
+                    if (regionParent == null)
+                    {
+                        GameObject regionParentLocal = new GameObject();
+                        regionParentLocal.transform.parent = parent;
+                        regionParentLocal.name = "Regions";
+                        regionParent = regionParentLocal.transform;
+                        fourMeshes.transform.parent = regionParent.transform;
+                    }
+                    else
+                    {
+                        fourMeshes.transform.parent = regionParent.transform;
+                    }
+                }
+                regionMeshes.Add(fourMeshes);
             }
         }//Create Region Meshes
 
-
         regionDataMap = new RegionData[(int)maxX + 1, (int)maxY + 1];
+
+        semiTransparentQuad.transform.position = new Vector3(maxX / 2, maxY / 2, 2.5f);
+        semiTransparentQuad.transform.localScale = new Vector3(maxX - minX, maxY - minY, 1);
         //Debug.Log("Region map created with x " + (int)maxX + ",y " + (int)maxY);
         for (int i = 0; i < regions.Count; i++)
         {
@@ -407,13 +450,13 @@ public class MapXMLParser : MonoBehaviour
         if (regionParent != null)
         {
             regionParent.eulerAngles = new Vector3(180, 0, 0);
-            regionParent.transform.position = new Vector3(0, maxY, 0);
+            regionParent.transform.position = new Vector3(-0.5f, maxY + 0.5f, 0);
             regionParent.transform.localScale = new Vector3(regionScaleFactor, regionScaleFactor, regionScaleFactor);
         }
         if (siteParent != null)
         {
             siteParent.eulerAngles = new Vector3(180, 0, 0);
-            siteParent.transform.localPosition = new Vector3(0, maxY, -0.1f);
+            siteParent.transform.localPosition = new Vector3(-0.5f, maxY + 0.5f, -0.1f);
             siteParent.transform.localScale = new Vector3(siteScaleFactor, siteScaleFactor, siteScaleFactor);
         }
     }//Parse XML
@@ -542,11 +585,16 @@ public class MapXMLParser : MonoBehaviour
                 //Debug.Log("Attempting " + _site.type);
                 if(sites[i].typeIndex == -1)
                 {
-                    Debug.LogError("site " + i + " (" + sites[i].type + ") has a value of -1.");
+                    //Debug.LogError("site " + i + " (" + sites[i].type + ") has a value of -1.");
+                    errorManager.GenerateError("site " + i + " (" + sites[i].type + ") has a value of -1.",Color.red);
                 }
-                _site.spriteR.color = siteRenderInfo[sites[i].typeIndex].color;
-                instantiatedSite.transform.localScale = new Vector3(sites[i].rectangle.width, sites[i].rectangle.height, 0);
-                instantiatedSite.transform.position = new Vector3(sites[i].rectangle.x, sites[i].rectangle.y, -1);
+                else
+                {
+                    _site.spriteR.color = siteRenderInfo[sites[i].typeIndex].color;
+                    instantiatedSite.transform.localScale = new Vector3(sites[i].rectangle.width, sites[i].rectangle.height, 0);
+                    instantiatedSite.transform.position = new Vector3(sites[i].rectangle.x, sites[i].rectangle.y, -1);
+                }
+
             }
         }
     }//InstantiateSites
@@ -560,7 +608,7 @@ public class MapXMLParser : MonoBehaviour
         return new Color(r, g, b);
     }
 
-    private void GenerateRegionMesh(int regionIndex, Vector2Int[] coordinates, string name, string type)
+    private GameObject GenerateRegionMesh(int regionIndex, Vector2Int[] coordinates, string name, string type)
     {
         // Create a new mesh
         Mesh mesh = new Mesh();
@@ -630,22 +678,22 @@ public class MapXMLParser : MonoBehaviour
         GameObject meshObject = new GameObject("FlatMesh");
         MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
         MeshFilter meshFilter = meshObject.AddComponent<MeshFilter>();
-        if (parent != null)
-        {
-            if (regionParent == null)
-            {
-                GameObject regionParentLocal = new GameObject();
-                regionParentLocal.transform.parent = parent;
-                regionParentLocal.name = "Regions";
-                regionParent = regionParentLocal.transform;
-                meshObject.transform.parent = regionParent.transform;
-            }
-            else
-            {
-                meshObject.transform.parent = regionParent.transform;
-            }
+        //if (parent != null)
+        //{
+        //    if (regionParent == null)
+        //    {
+        //        GameObject regionParentLocal = new GameObject();
+        //        regionParentLocal.transform.parent = parent;
+        //        regionParentLocal.name = "Regions";
+        //        regionParent = regionParentLocal.transform;
+        //        meshObject.transform.parent = regionParent.transform;
+        //    }
+        //    else
+        //    {
+        //        meshObject.transform.parent = regionParent.transform;
+        //    }
 
-        }
+        //}
         meshObject.name = "Region | " + name;
         meshObject.transform.localScale = new Vector3(1, 1, 1);
         // Assign the generated mesh to the filter
@@ -653,10 +701,11 @@ public class MapXMLParser : MonoBehaviour
         //meshObject.transform.position = new Vector3(coordinates[0].x,coordinates[0].y,0);
         meshObject.transform.eulerAngles = new Vector3(-90, 0, 0);
         meshRenderer.material = regionMaterials[StringRegionTypeToInt(type)];
-        regionMeshes.Add(meshObject);
-        // Optionally, attach a material to the mesh renderer for visualization
+        //regionMeshes.Add(meshObject);
 
         FlipNormals(meshFilter);
+
+        return meshObject;
     }//GenerateMesh
 
     public int RegionCoordsToRegionIndex(int x, int y)
