@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4431602593918109676}
   - component: {fileID: 1566950859887448797}
   - component: {fileID: 8363523555610071573}
+  - component: {fileID: 3468214266869912084}
   m_Layer: 5
   m_Name: Text (Legacy)
   m_TagString: Untagged
@@ -80,6 +81,21 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: This is an error message. Test test. Bla bla. Error test.
+--- !u!114 &3468214266869912084
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8446375815086185456}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfabb0440166ab443bba8876756fdfa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 1, g: 1, b: 1, a: 1}
+  m_EffectDistance: {x: 0.4, y: 0.4}
+  m_UseGraphicAlpha: 1
 --- !u!1 &9007016822781963993
 GameObject:
   m_ObjectHideFlags: 0
@@ -111,7 +127,7 @@ RectTransform:
   m_Children:
   - {fileID: 4431602593918109676}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}

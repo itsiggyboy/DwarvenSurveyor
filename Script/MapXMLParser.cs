@@ -5,14 +5,16 @@ using System.Xml;
 using UnityEngine.UI;
 using System.IO;
 using System;
+using System.Globalization;
 
 public class MapXMLParser : MonoBehaviour
 {
     public SiteRenderInfo[] siteRenderInfo;
     public Material[] regionMaterials;//0wetland, 1forest, 2grassland, 3hills, 4desert, 5lake, 6tundra, 7glacier, 8ocean, 9mountains
-    public Material outlineMaterial;
     public Color[] regionColors;
     public List<GameObject> regionMeshes = new List<GameObject>();
+
+    public GameObject xmlInfoPanel;
 
     public Transform semiTransparentQuad;
 
@@ -71,6 +73,14 @@ public class MapXMLParser : MonoBehaviour
         else { cameraMover.allowDown = true; }
     }
 
+    public void Reset()
+    {
+        regionMeshes.Clear();
+        sites.Clear();
+        regions.Clear();
+        Destroy(transform.GetChild(0).gameObject);
+    }
+
     public void CheckInputFields()
     {
         bool xmlOk = false;
@@ -102,6 +112,7 @@ public class MapXMLParser : MonoBehaviour
     }
     public void Generate()
     {
+        Debug.Log("Attempting generation...");
         xmlPath = xmlInputField.text;
         xmlPlusPath = xmlPlusInputField.text;
 
@@ -120,10 +131,14 @@ public class MapXMLParser : MonoBehaviour
     }
     void ParseXML()
     {
+        Debug.Log("Parsing XMLs...");
+        bool regularXmlSiteError = false;
+        bool regularXmlRegionError = false;
+        bool XmlPlusRegionError = false;
         List<RegionDataPlus> regionsPlus = new List<RegionDataPlus>();
         List<RegionDataNormal> regionsNormal = new List<RegionDataNormal>();
 
-         XmlReader reader = XmlReader.Create(new StreamReader(xmlPath, System.Text.Encoding.UTF8));
+        XmlReader reader = XmlReader.Create(new StreamReader(xmlPath, System.Text.Encoding.UTF8));
         bool isInsideSiteElement = false;
         bool isInsideStructureElement = false;
 
@@ -152,11 +167,11 @@ public class MapXMLParser : MonoBehaviour
                     switch (reader.Name)
                     {
                         case "type":
-                            sData.type = reader.ReadElementContentAsString();
+                            sData.type = ConvertWordsToTitleCase(reader.ReadElementContentAsString());
                             break;
 
                         case "name":
-                            sData.name = reader.ReadElementContentAsString();
+                            sData.name = ConvertWordsToTitleCase(reader.ReadElementContentAsString());
                             break;
 
                         case "coords":
@@ -194,77 +209,17 @@ public class MapXMLParser : MonoBehaviour
                 }
             }
         }
-        //while (reader.Read())
-        //{
-        //    // Check the node type.
-        //    if (reader.NodeType == XmlNodeType.Element)
-        //    {
-        //        // Get the node name.
-        //        string name = reader.Name;
 
-        //        switch (name)
-        //        {
-        //            case "site":
-        //                if (reader.IsStartElement())
-        //                {
-        //                    sData = new SiteData();
-        //                    isInsideElement = true;
-        //                }
-        //                break;
-        //            case "name":
-        //                if(isInsideElement)
-        //                {
-        //                    reader.ReadStartElement();
-        //                    sData.name = reader.Value;
-        //                }
-        //                break;
-        //            case "type":
-        //                if(isInsideElement)
-        //                {
-        //                    reader.ReadStartElement();
-        //                    sData.type = reader.Value;
-        //                }
-        //                break;
-        //            case "coords":
-        //                if(isInsideElement)
-        //                {
-        //                    reader.ReadStartElement();
-        //                    string coordString = reader.Value;
-        //                    string[] coordArray = coordString.Split(',');
-        //                    sData.coord = new Vector2Int(int.Parse(coordArray[0]), int.Parse(coordArray[1]));
-        //                }
-        //                break;
-        //            case "rectangle":
-        //                if(isInsideElement)
-        //                {
-        //                    reader.ReadStartElement();
-        //                    string rectString = reader.Value;
-        //                    string[] rectCoords = rectString.Split(':', ',');
-        //                    int xMin = int.Parse(rectCoords[0]);
-        //                    int yMin = int.Parse(rectCoords[1]);
-        //                    int xMax = int.Parse(rectCoords[2]);
-        //                    int yMax = int.Parse(rectCoords[3]);
-        //                    sData.rectangle = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
-        //                }
-        //                break;
-        //            default:
-        //                // Do nothing.
-        //                break;
-        //        }
-        //    }
-        //    if (reader.NodeType == XmlNodeType.EndElement)
-        //    {
-        //        if (reader.Name == "site")
-        //        {
-        //            sites.Add(sData);
-        //            isInsideElement = false;
-        //        }
-        //    }
-        //}
+        if (sites.Count < 1)
+        {
+            errorManager.GenerateError("XML contains " + sites.Count + " sites. You probably are trying to use the wrong XML file.", Color.red);
+            regularXmlSiteError = true;
+        }
         for (int i = 0; i < sites.Count; i++)
         {
             sites[i].typeIndex = SiteTypeStringToTypeIndex(sites[i].type);
         }
+
 
         //REGION REGULAR XML
         XmlReader readerRegion = XmlReader.Create(new StreamReader(xmlPath, System.Text.Encoding.UTF8));
@@ -278,11 +233,11 @@ public class MapXMLParser : MonoBehaviour
             if (readerRegion.NodeType == XmlNodeType.Element)
             {
 
-                if(readerRegion.Name == "region")
+                if (readerRegion.Name == "region")
                 {
                     isInsideRegionElement = true;
                     rDataNormal = new RegionDataNormal();
-                }else if(isInsideRegionElement)
+                } else if (isInsideRegionElement)
                 {
                     switch (readerRegion.Name)
                     {
@@ -297,7 +252,7 @@ public class MapXMLParser : MonoBehaviour
                             break;
                     }
                 }
-                
+
             }
             if (readerRegion.NodeType == XmlNodeType.EndElement)
             {
@@ -307,6 +262,13 @@ public class MapXMLParser : MonoBehaviour
                     isInsideRegionElement = false;
                 }
             }
+        }
+
+        if (regionsNormal.Count < 1)
+        {
+            //No regions.
+            errorManager.GenerateError("XML contains " + regionsNormal.Count + " regions. You probably are trying to use the wrong XML file.", Color.red);
+            regularXmlRegionError = true;
         }
 
         //SITE XML PLUS
@@ -322,11 +284,11 @@ public class MapXMLParser : MonoBehaviour
             if (readerPlus.NodeType == XmlNodeType.Element)
             {
                 // Get the node name.
-                if(readerPlus.Name == "region")
+                if (readerPlus.Name == "region")
                 {
                     isInsideRegionPlus = true;
                     rDataPlus = new RegionDataPlus();
-                }else if (isInsideRegionPlus)
+                } else if (isInsideRegionPlus)
                 {
                     switch (readerPlus.Name)
                     {
@@ -352,15 +314,31 @@ public class MapXMLParser : MonoBehaviour
                 }
             }
         }
+        Debug.Log("---------------------------------------------------------------------------------------------------");
 
-        for (int i = 0; i < regionsNormal.Count; i++)
+        if (regionsPlus.Count < 1)
+        {
+            string errorText = "XML plus contains " + regionsPlus.Count + " regions. You probably are trying to use the wrong XML file.";
+            errorManager.GenerateError(errorText, Color.red);
+            Debug.LogError(errorText);
+            XmlPlusRegionError = true;
+        }
+
+        if (regularXmlRegionError || regularXmlSiteError || XmlPlusRegionError)
+        {
+            errorManager.GenerateError("Not enough data to build map. This is probably due to an incorrect XML file being provided.", Color.red);
+            return;
+        }
+
+        for (int i = 0; i < regionsPlus.Count; i++)
         {
             RegionData rData = new RegionData();
-            rData.name = regionsNormal[i].name;
+            rData.name = ConvertWordsToTitleCase(regionsNormal[i].name);
             rData.type = regionsNormal[i].type;
             rData.index = i;
             rData.typeIndex = StringRegionTypeToInt(regionsNormal[i].type);
             rData.coords = regionsPlus[i].coords;
+            Debug.Log("Adding coords to " + rData.name + regionsPlus[i].coords);
             rData.evilness = regionsPlus[i].evilness;
             regions.Add(rData);
         }
@@ -369,7 +347,7 @@ public class MapXMLParser : MonoBehaviour
 
         for (int i = 0; i < regions.Count; i++)
         {
-            if (regions[i].coords.Length < 10000)
+            if (regions[i].coords.Length < 10000)//If the mesh has under 10.000 vertices, put it in a single mesh. Otherwise, put it in 4 separate meshes.
             {
                 GameObject go = GenerateRegionMesh(i, regions[i].coords, regions[i].name, regions[i].type);
                 if (parent != null)
@@ -459,6 +437,11 @@ public class MapXMLParser : MonoBehaviour
             siteParent.transform.localPosition = new Vector3(-0.5f, maxY + 0.5f, -0.1f);
             siteParent.transform.localScale = new Vector3(siteScaleFactor, siteScaleFactor, siteScaleFactor);
         }
+
+        xmlInfoPanel.SetActive(false);
+        uiPanelScript.gameObject.SetActive(true);
+        semiTransparentQuad.gameObject.SetActive(true);
+
     }//Parse XML
 
     private int SiteTypeStringToTypeIndex(string typeString)
@@ -466,64 +449,64 @@ public class MapXMLParser : MonoBehaviour
             int typeIndex = -1;
             switch (typeString)
             {
-                case "camp":
+                case "Camp":
                     typeIndex = 0;
                     break;
-                case "cave":
+                case "Cave":
                     typeIndex = 1;
                     break;
-                case "dark fortress":
+                case "Dark Fortress":
                     typeIndex = 2;
                     break;
-                case "dark pits":
+                case "Dark Pits":
                     typeIndex = 3;
                     break;
-                case "forest retreat":
+                case "Forest Retreat":
                     typeIndex = 4;
                     break;
-                case "fortress":
+                case "Fortress":
                     typeIndex = 5;
                     break;
-                case "castle":
+                case "Castle":
                     typeIndex = 6;
                     break;
-                case "fort":
+                case "Fort":
                     typeIndex = 7;
                     break;
-                case "hamlet":
+                case "Hamlet":
                     typeIndex = 8;
                     break;
-                case "hillocks":
+                case "Hillocks":
                     typeIndex = 9;
                     break;
-                case "labyrinth":
+                case "Labyrinth":
                     typeIndex = 10;
                     break;
-                case "lair":
+                case "Lair":
                     typeIndex = 11;
                     break;
-                case "monastery":
+                case "Monastery":
                     typeIndex = 12;
                     break;
-                case "mountain halls":
+                case "Mountain Halls":
                     typeIndex = 13;
                     break;
-                case "ruins":
+                case "Ruins":
                     typeIndex = 14;
                     break;
-                case "shrine":
+                case "Shrine":
                     typeIndex = 15;
                     break;
-                case "tomb":
+                case "Tomb":
                     typeIndex = 16;
                     break;
-                case "tower":
+                case "Tower":
                     typeIndex = 17;
                     break;
-                case "town":
+                case "Town":
                     typeIndex = 18;
                     break;
-                case "vault":
+                case "Vault":
                     typeIndex = 19;
                     break;
         }
@@ -551,6 +534,7 @@ public class MapXMLParser : MonoBehaviour
 
     public void InstantiateSites()
     {
+        Debug.Log("Instantiating sites...");
         if (transform.childCount > 0)
         {
             Destroy(transform.GetChild(0).gameObject);
@@ -873,7 +857,39 @@ public class MapXMLParser : MonoBehaviour
 
         return coordinates;
     }
+
+    public static string ConvertWordsToTitleCase(string input)
+    {
+        // Check for null or empty input
+        if (string.IsNullOrEmpty(input))
+        {
+            return input;
+        }
+
+        // Initialize a CultureInfo for title casing
+        CultureInfo cultureInfo = CultureInfo.CurrentCulture;
+
+        // Split the input into individual words
+        string[] words = input.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        // Convert the first letter of each word to uppercase
+        for (int i = 0; i < words.Length; i++)
+        {
+            // Check if the word is not empty
+            if (!string.IsNullOrEmpty(words[i]))
+            {
+                // Convert the first letter to uppercase and append the rest of the word
+                words[i] = char.ToUpper(words[i][0], cultureInfo) + words[i].Substring(1);
+            }
+        }
+
+        // Join the words back together with spaces
+        string result = string.Join(" ", words);
+
+        return result;
+    }
 }//Class
+
 
 
 [System.SerializableAttribute]
