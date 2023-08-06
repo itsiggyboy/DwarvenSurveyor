@@ -15,6 +15,7 @@ public class MapXMLParser : MonoBehaviour
     public List<GameObject> regionMeshes = new List<GameObject>();
 
     public GameObject xmlInfoPanel;
+    public GameObject resetButton;
 
     public Transform semiTransparentQuad;
 
@@ -75,6 +76,10 @@ public class MapXMLParser : MonoBehaviour
 
     public void Reset()
     {
+        minX = 0;
+        maxX = 0;
+        minY = 0;
+        maxY = 0;
         regionMeshes.Clear();
         sites.Clear();
         regions.Clear();
@@ -442,6 +447,8 @@ public class MapXMLParser : MonoBehaviour
         uiPanelScript.gameObject.SetActive(true);
         semiTransparentQuad.gameObject.SetActive(true);
 
+        cameraMover.transform.position = new Vector3(maxX/2, maxY/2, -20);
+        resetButton.SetActive(true);
     }//Parse XML
 
     private int SiteTypeStringToTypeIndex(string typeString)

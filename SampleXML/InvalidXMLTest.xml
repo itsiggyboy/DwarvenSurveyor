@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<note>
+  <to>User</to>
+  <from>Iggy</from>
+  <heading>Test XML</heading>
+  <body>Hey! This is an invalid .xml file which will not contain the tags Dwarven Surveyor will look for, like site or region. It is meant to purposely generate errors and see what happens when the user inputs an incorrect .xml file.</body>
+</note>
