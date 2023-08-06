@@ -11,6 +11,6 @@ How do I visualize my Dwarf Fortress world using Dwarven Surveyor?
 7) Open Dwarven Surveyor, and type the directories for both the regular and the plus xml files on their respective fields.
 8) Directories should be complete, including the drive and the extension of the .xml file, like so:
 
-    a.  C:\MyFolder\legends.xm
+    a)  C:\MyFolder\legends.xm
 
     If the directory is valid, the Generate button will be enabled and you can click it to generate your map.
