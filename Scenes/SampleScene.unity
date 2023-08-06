@@ -2305,7 +2305,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: v0.2
+  m_Text: v0.2.2
 --- !u!222 &1039846666
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3183,7 +3183,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4bd4871070342942976a5d3090432e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  urlToOpen: https://youtu.be/0lYyXbv6GMQ
+  urlToOpen: https://youtu.be/cI-cJQZLtHM
 --- !u!114 &1347088819
 MonoBehaviour:
   m_ObjectHideFlags: 0
