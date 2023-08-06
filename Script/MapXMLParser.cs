@@ -579,7 +579,7 @@ public class MapXMLParser : MonoBehaviour
                 if(sites[i].typeIndex == -1)
                 {
                     //Debug.LogError("site " + i + " (" + sites[i].type + ") has a value of -1.");
-                    errorManager.GenerateError("site " + i + " (" + sites[i].type + ") has a value of -1.",Color.red);
+                    //errorManager.GenerateError("site " + i + " (" + sites[i].type + ") has a value of -1.",Color.red);
                 }
                 else
                 {
