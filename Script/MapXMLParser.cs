@@ -14,6 +14,7 @@ public class MapXMLParser : MonoBehaviour
     public Color[] regionColors;
     public List<GameObject> regionMeshes = new List<GameObject>();
 
+    public GameObject panelRegion;
     public GameObject xmlInfoPanel;
     public GameObject resetButton;
 
@@ -449,6 +450,7 @@ public class MapXMLParser : MonoBehaviour
 
         cameraMover.transform.position = new Vector3(maxX/2, maxY/2, -20);
         resetButton.SetActive(true);
+        panelRegion.SetActive(true);
     }//Parse XML
 
     private int SiteTypeStringToTypeIndex(string typeString)
