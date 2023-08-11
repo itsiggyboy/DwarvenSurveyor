@@ -336,7 +336,9 @@ public class MapXMLParser : MonoBehaviour
             return;
         }
 
-        for (int i = 0; i < regionsPlus.Count; i++)
+        //errorManager.GenerateError("Regions normal is " + regionsNormal.Count + " regions. Regions plus is " + regionsPlus.Count, Color.red);
+
+        for (int i = 0; i < regionsNormal.Count; i++)
         {
             RegionData rData = new RegionData();
             rData.name = ConvertWordsToTitleCase(regionsNormal[i].name);
