@@ -11,4 +11,9 @@ public class AnimHelper : MonoBehaviour
     {
         anim.SetBool("b", b);
     }
+
+    public void Toggle(string booleanName)
+    {
+        anim.SetBool("booleanName", !anim.GetBool("booleanName"));
+    }
 }

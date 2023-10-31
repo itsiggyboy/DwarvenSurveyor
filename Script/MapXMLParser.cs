@@ -17,6 +17,10 @@ public class MapXMLParser : MonoBehaviour
     public GameObject panelRegion;
     public GameObject xmlInfoPanel;
     public GameObject resetButton;
+    public GameObject searchButton;
+
+    public GameObject searchButtonPrefab;
+    public Transform searchScrollViewContent;
 
     public Transform semiTransparentQuad;
 
@@ -85,6 +89,58 @@ public class MapXMLParser : MonoBehaviour
         sites.Clear();
         regions.Clear();
         Destroy(transform.GetChild(0).gameObject);
+    }
+
+    public void SearchText(string s)
+    {
+        Debug.Log("Searching... " + s);
+
+        s.ToLower();
+        
+        List<SiteData> compatibleSites = new List<SiteData>();
+        List<RegionData> compatibleRegions = new List<RegionData>();
+
+        compatibleSites.Clear();
+        compatibleRegions.Clear();
+
+        foreach (Transform child in searchScrollViewContent.transform)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
+
+        for (int i = 0; i < sites.Count; i++)
+        {
+            if(sites[i].name.ToLower().Contains(s))
+            {
+                compatibleSites.Add(sites[i]);
+            }
+        }
+        for (int i = 0; i < regions.Count; i++)
+        {
+            if (regions[i].name.ToLower().Contains(s))
+            {
+                compatibleRegions.Add(regions[i]);
+            }
+        }
+
+        for (int i = 0; i < compatibleSites.Count; i++)
+        {
+            GameObject siteButton = Instantiate(searchButtonPrefab, searchScrollViewContent);
+            siteButton.name = compatibleSites[i].name + "-searchresult";
+            siteButton.transform.GetChild(0).GetComponent<Text>().text = compatibleSites[i].name;
+            siteButton.GetComponent<SearchButtonCameraJump>().positionToJumpTo = compatibleSites[i].realPosition;
+        }
+
+        for (int i = 0; i < compatibleRegions.Count; i++)
+        {
+            GameObject regionButton = Instantiate(searchButtonPrefab, searchScrollViewContent);
+            regionButton.name = compatibleRegions[i].name + "-searchresult";
+            regionButton.transform.GetChild(0).GetComponent<Text>().text = compatibleRegions[i].name;
+            regionButton.GetComponent<SearchButtonCameraJump>().positionToJumpTo = compatibleRegions[i].realPosition;
+        }
+        float buttonHeight = searchButtonPrefab.GetComponent<RectTransform>().sizeDelta.y;
+
+        searchScrollViewContent.GetComponent<RectTransform>().sizeDelta = new Vector2(0, buttonHeight * (compatibleSites.Count + compatibleRegions.Count));
     }
 
     public void CheckInputFields()
@@ -407,6 +463,18 @@ public class MapXMLParser : MonoBehaviour
                 }
                 regionMeshes.Add(fourMeshes);
             }
+
+            Vector2 regionCenterPos = Vector2.zero;
+            Bounds bounds;
+            if (regionMeshes[i].GetComponent<MeshFilter>() == null)
+            {
+                regionMeshes[i].AddComponent<MeshFilter>();
+
+            }
+
+            bounds = regionMeshes[i].GetComponent<MeshFilter>().mesh.bounds;
+            regionCenterPos = bounds.center;
+            regions[i].realPosition = regionCenterPos;
         }//Create Region Meshes
 
         regionDataMap = new RegionData[(int)maxX + 1, (int)maxY + 1];
@@ -444,6 +512,11 @@ public class MapXMLParser : MonoBehaviour
             siteParent.eulerAngles = new Vector3(180, 0, 0);
             siteParent.transform.localPosition = new Vector3(-0.5f, maxY + 0.5f, -0.1f);
             siteParent.transform.localScale = new Vector3(siteScaleFactor, siteScaleFactor, siteScaleFactor);
+
+            for (int i = 0; i < sites.Count; i++)
+            {
+                sites[i].realPosition = siteParent.GetChild(i).transform.position;
+            }
         }
 
         xmlInfoPanel.SetActive(false);
@@ -452,6 +525,7 @@ public class MapXMLParser : MonoBehaviour
 
         cameraMover.transform.position = new Vector3(maxX/2, maxY/2, -20);
         resetButton.SetActive(true);
+        searchButton.SetActive(true);
         panelRegion.SetActive(true);
     }//Parse XML
 
@@ -585,14 +659,27 @@ public class MapXMLParser : MonoBehaviour
                 }
                 else
                 {
+
                     _site.spriteR.color = siteRenderInfo[sites[i].typeIndex].color;
-                    instantiatedSite.transform.localScale = new Vector3(sites[i].rectangle.width, sites[i].rectangle.height, 0);
+                    Vector3 scale = new Vector3(sites[i].rectangle.width, sites[i].rectangle.height, 0);
+
+                    if(scale.x == 0)
+                    {
+                        scale.x = 1;
+                    }
+                    if(scale.y == 0)
+                    {
+                        scale.y = 1;
+                    }
+                    instantiatedSite.transform.localScale = scale;
+
                     instantiatedSite.transform.position = new Vector3(sites[i].rectangle.x, sites[i].rectangle.y, -1);
                 }
 
             }
         }
     }//InstantiateSites
+
 
     public Color GetRandomColor()
     {
@@ -899,6 +986,8 @@ public class MapXMLParser : MonoBehaviour
 
         return result;
     }
+
+
 }//Class
 
 
@@ -910,6 +999,7 @@ public class SiteData
     public string type;
     public int typeIndex;
     public Vector2Int coord;
+    public Vector2 realPosition;
     public Rect rectangle;
 }
 
@@ -922,6 +1012,7 @@ public class RegionData
     public int typeIndex;
     public int index;
     public Vector2Int[] coords;
+    public Vector2 realPosition;
 }
 
 public class RegionDataNormal
