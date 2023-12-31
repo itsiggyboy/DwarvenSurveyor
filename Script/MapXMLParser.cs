@@ -25,6 +25,8 @@ public class MapXMLParser : MonoBehaviour
     public GameObject resetButton;
     public GameObject searchButton;
 
+    public GameObject disclaimer;
+
     public GameObject searchButtonPrefab;
     public Transform searchScrollViewContent;
     public GameObject regionDivider;
@@ -108,7 +110,9 @@ public class MapXMLParser : MonoBehaviour
         regionMeshes.Clear();
         sites.Clear();
         regions.Clear();
+        disclaimer.SetActive(true);
         Destroy(transform.GetChild(0).gameObject);
+
     }
 
     public void SearchText(string s)
@@ -552,6 +556,7 @@ public class MapXMLParser : MonoBehaviour
         xmlInfoPanel.SetActive(false);
         uiPanelScript.gameObject.SetActive(true);
         semiTransparentQuad.gameObject.SetActive(true);
+        disclaimer.SetActive(false);
 
         cameraMover.transform.position = new Vector3(maxX/2, maxY/2, -20);
         resetButton.SetActive(true);
