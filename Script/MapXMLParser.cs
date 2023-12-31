@@ -6,13 +6,19 @@ using UnityEngine.UI;
 using System.IO;
 using System;
 using System.Globalization;
+using JetBrains.Annotations;
+using Unity.Collections.LowLevel.Unsafe;
 
 public class MapXMLParser : MonoBehaviour
 {
+    public GameObject testCube;
     public SiteRenderInfo[] siteRenderInfo;
     public Material[] regionMaterials;//0wetland, 1forest, 2grassland, 3hills, 4desert, 5lake, 6tundra, 7glacier, 8ocean, 9mountains
     public Color[] regionColors;
     public List<GameObject> regionMeshes = new List<GameObject>();
+
+    public GameObject targetReticle;
+    public GameObject regionHighlight;
 
     public GameObject panelRegion;
     public GameObject xmlInfoPanel;
@@ -21,6 +27,8 @@ public class MapXMLParser : MonoBehaviour
 
     public GameObject searchButtonPrefab;
     public Transform searchScrollViewContent;
+    public GameObject regionDivider;
+    public GameObject siteDivider;
 
     public Transform semiTransparentQuad;
 
@@ -38,8 +46,11 @@ public class MapXMLParser : MonoBehaviour
 
     public CameraMover cameraMover;
 
+    float highLightTimer;
+    float highLightInterval = 0.5f;
+
     public Transform parent;
-    Transform regionParent;
+    public Transform regionParent;
     Transform regionColliderParent;
     Transform siteParent;
 
@@ -66,6 +77,15 @@ public class MapXMLParser : MonoBehaviour
 
     private void Update()
     {
+        if (regionHighlight != null)
+        {
+            highLightTimer += Time.deltaTime;
+            if(highLightTimer > highLightInterval)
+            {
+                regionHighlight.SetActive(!regionHighlight.activeSelf);
+                highLightTimer = 0;
+            }
+        }
         if (cameraMover.transform.position.x > maxX) { cameraMover.allowRight = false; }
         else { cameraMover.allowRight = true; }
 
@@ -123,20 +143,32 @@ public class MapXMLParser : MonoBehaviour
             }
         }
 
+        // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        GameObject siteDividerObj = Instantiate(siteDivider, searchScrollViewContent);
         for (int i = 0; i < compatibleSites.Count; i++)
         {
             GameObject siteButton = Instantiate(searchButtonPrefab, searchScrollViewContent);
             siteButton.name = compatibleSites[i].name + "-searchresult";
             siteButton.transform.GetChild(0).GetComponent<Text>().text = compatibleSites[i].name;
-            siteButton.GetComponent<SearchButtonCameraJump>().positionToJumpTo = compatibleSites[i].realPosition;
+            SearchButtonCameraJump cameraJumpScript = siteButton.GetComponent<SearchButtonCameraJump>();
+            cameraJumpScript.positionToJumpTo = compatibleSites[i].realPosition;
+            cameraJumpScript.targetReticle = targetReticle;
+            cameraJumpScript.region = false;
+            cameraJumpScript.parser = this;
         }
-
+        GameObject regionDividerObj = Instantiate(regionDivider, searchScrollViewContent);
         for (int i = 0; i < compatibleRegions.Count; i++)
         {
             GameObject regionButton = Instantiate(searchButtonPrefab, searchScrollViewContent);
             regionButton.name = compatibleRegions[i].name + "-searchresult";
             regionButton.transform.GetChild(0).GetComponent<Text>().text = compatibleRegions[i].name;
-            regionButton.GetComponent<SearchButtonCameraJump>().positionToJumpTo = compatibleRegions[i].realPosition;
+            SearchButtonCameraJump cameraJumpScript = regionButton.GetComponent<SearchButtonCameraJump>();
+            cameraJumpScript.positionToJumpTo = compatibleRegions[i].realPosition;
+            cameraJumpScript.targetReticle = targetReticle;
+            cameraJumpScript.region = true;
+            cameraJumpScript.parser = this;
+            cameraJumpScript.indexToJumpTo = compatibleRegions[i].index;
+
         }
         float buttonHeight = searchButtonPrefab.GetComponent<RectTransform>().sizeDelta.y;
 
@@ -402,7 +434,7 @@ public class MapXMLParser : MonoBehaviour
             rData.index = i;
             rData.typeIndex = StringRegionTypeToInt(regionsNormal[i].type);
             rData.coords = regionsPlus[i].coords;
-            Debug.Log("Adding coords to " + rData.name + regionsPlus[i].coords);
+            //Debug.Log("Adding coords to " + rData.name + regionsPlus[i].coords);
             rData.evilness = regionsPlus[i].evilness;
             regions.Add(rData);
         }
@@ -414,6 +446,7 @@ public class MapXMLParser : MonoBehaviour
             if (regions[i].coords.Length < 10000)//If the mesh has under 10.000 vertices, put it in a single mesh. Otherwise, put it in 4 separate meshes.
             {
                 GameObject go = GenerateRegionMesh(i, regions[i].coords, regions[i].name, regions[i].type);
+
                 if (parent != null)
                 {
                     if (regionParent == null)
@@ -428,7 +461,6 @@ public class MapXMLParser : MonoBehaviour
                     {
                         go.transform.parent = regionParent.transform;
                     }
-
                 }
                 regionMeshes.Add(go);
             }
@@ -464,20 +496,20 @@ public class MapXMLParser : MonoBehaviour
                 regionMeshes.Add(fourMeshes);
             }
 
-            Vector2 regionCenterPos = Vector2.zero;
-            Bounds bounds;
-            if (regionMeshes[i].GetComponent<MeshFilter>() == null)
+            for (int u = 0; u < sites.Count; u++)
             {
-                regionMeshes[i].AddComponent<MeshFilter>();
+                Vector2 siteOffset = new Vector2(-0.25f, 0.75f);
+                Vector2 sitePos = sites[u].rectangle.center /16;
+                sitePos.y = maxY - sitePos.y;
+                sites[u].realPosition = sitePos + siteOffset;
+            } 
 
-            }
-
-            bounds = regionMeshes[i].GetComponent<MeshFilter>().mesh.bounds;
-            regionCenterPos = bounds.center;
-            regions[i].realPosition = regionCenterPos;
+           
         }//Create Region Meshes
 
         regionDataMap = new RegionData[(int)maxX + 1, (int)maxY + 1];
+
+
 
         semiTransparentQuad.transform.position = new Vector3(maxX / 2, maxY / 2, 2.5f);
         semiTransparentQuad.transform.localScale = new Vector3(maxX - minX, maxY - minY, 1);
@@ -513,12 +545,10 @@ public class MapXMLParser : MonoBehaviour
             siteParent.transform.localPosition = new Vector3(-0.5f, maxY + 0.5f, -0.1f);
             siteParent.transform.localScale = new Vector3(siteScaleFactor, siteScaleFactor, siteScaleFactor);
 
-            for (int i = 0; i < sites.Count; i++)
-            {
-                sites[i].realPosition = siteParent.GetChild(i).transform.position;
-            }
+
         }
 
+        FindCenters();
         xmlInfoPanel.SetActive(false);
         uiPanelScript.gameObject.SetActive(true);
         semiTransparentQuad.gameObject.SetActive(true);
@@ -651,6 +681,7 @@ public class MapXMLParser : MonoBehaviour
                 _site.type = sites[i].type;
                 _site.coord = sites[i].coord;
                 _site.uiPanel = uiPanelScript;
+
                 //Debug.Log("Attempting " + _site.type);
                 if(sites[i].typeIndex == -1)
                 {
@@ -675,7 +706,6 @@ public class MapXMLParser : MonoBehaviour
 
                     instantiatedSite.transform.position = new Vector3(sites[i].rectangle.x, sites[i].rectangle.y, -1);
                 }
-
             }
         }
     }//InstantiateSites
@@ -694,10 +724,12 @@ public class MapXMLParser : MonoBehaviour
     {
         // Create a new mesh
         Mesh mesh = new Mesh();
-
+        Vector2 topLeft = Vector2.zero;
+        Vector2 bottomRight = Vector2.zero;
         // Vertices
         Vector3[] vertices = new Vector3[coordinates.Length * 4];
         int vertexIndex = 0;
+        // Vertices
         for (int i = 0; i < coordinates.Length; i++)
         {
             Vector2Int coordinate = coordinates[i];
@@ -746,6 +778,7 @@ public class MapXMLParser : MonoBehaviour
             {
                 maxY = coordinates[i].y;
             }
+
         }
 
         // Assign vertices and triangles to the mesh
@@ -760,35 +793,99 @@ public class MapXMLParser : MonoBehaviour
         GameObject meshObject = new GameObject("FlatMesh");
         MeshRenderer meshRenderer = meshObject.AddComponent<MeshRenderer>();
         MeshFilter meshFilter = meshObject.AddComponent<MeshFilter>();
-        //if (parent != null)
-        //{
-        //    if (regionParent == null)
-        //    {
-        //        GameObject regionParentLocal = new GameObject();
-        //        regionParentLocal.transform.parent = parent;
-        //        regionParentLocal.name = "Regions";
-        //        regionParent = regionParentLocal.transform;
-        //        meshObject.transform.parent = regionParent.transform;
-        //    }
-        //    else
-        //    {
-        //        meshObject.transform.parent = regionParent.transform;
-        //    }
 
-        //}
         meshObject.name = "Region | " + name;
         meshObject.transform.localScale = new Vector3(1, 1, 1);
         // Assign the generated mesh to the filter
         meshFilter.mesh = mesh;
-        //meshObject.transform.position = new Vector3(coordinates[0].x,coordinates[0].y,0);
         meshObject.transform.eulerAngles = new Vector3(-90, 0, 0);
         meshRenderer.material = regionMaterials[StringRegionTypeToInt(type)];
-        //regionMeshes.Add(meshObject);
 
         FlipNormals(meshFilter);
 
+
+
         return meshObject;
     }//GenerateMesh
+
+    public void DestroySearchHighlight()
+    {
+        if (regionHighlight == null)
+        {
+            return;
+        }
+        Destroy(regionHighlight);
+    }
+
+    public void FindCenters()
+    {
+        Debug.Log("Finding centers...");
+        for (int i = 0; i < regionMeshes.Count; i++)
+        {
+            Mesh mesh;
+            if (regionMeshes[i].GetComponent<MeshFilter>() == null)
+            {
+                //Debug.LogError("Region Mesh " + i + " (" + regions[i].name + ") has no mesh filter");
+                //return;
+                mesh = regionMeshes[i].transform.GetChild(0).GetComponent<MeshFilter>().mesh;
+            }
+            else
+            {
+                mesh = regionMeshes[i].GetComponent<MeshFilter>().mesh;
+            }
+
+            Vector3[] vertices = mesh.vertices;
+
+            Vector3 topLeft = new Vector2(maxX, 0);
+            Vector3 bottomRight = new Vector2(0, maxY);
+
+            Vector3[] verticesFixedYFlipping = mesh.vertices;
+
+            for (int u = 0; u < verticesFixedYFlipping.Length; u++)
+            {
+                verticesFixedYFlipping[u] = new Vector3(vertices[u].x, maxY - vertices[u].z, 0);
+            }
+
+            for (int u = 0; u < vertices.Length; u++)
+            {
+
+                Vector3 coordinate = verticesFixedYFlipping[u];
+
+                Debug.Log("Coordinates: " + coordinate);
+
+                // Update topLeft
+                topLeft.x = Mathf.Min(topLeft.x, coordinate.x);
+                topLeft.y = Mathf.Max(topLeft.y, coordinate.y);
+
+                // Update bottomRight
+                bottomRight.x = Mathf.Max(bottomRight.x, coordinate.x);
+                bottomRight.y = Mathf.Min(bottomRight.y, coordinate.y);
+            }
+            Vector3 offset = new Vector3(-0.5f, 0.5f, 0);
+            //topLeftObj.transform.position = topLeft + offset;
+            //bottomRightObj.transform.position = bottomRight + offset;
+            Vector3 centerWorldPosition = CalculateRectangleCenter(topLeft, bottomRight);
+
+            regions[i].realPosition = centerWorldPosition + offset;
+        }
+        Debug.Log("Done finding centers.");
+    }
+
+    Vector2 CalculateRectangleCenter(Vector2 topLeft, Vector2 bottomRight)
+    {
+        float centerX = (topLeft.x + bottomRight.x) / 2.0f;
+        float centerY = (topLeft.y + bottomRight.y) / 2.0f;
+
+        return new Vector2(centerX, centerY);
+    }
+
+    Vector2 CalculateBoundingBoxCenter(Vector2 topLeft, Vector2 bottomRight)
+    {
+        float centerX = Mathf.Lerp(topLeft.x, bottomRight.x, 0.5f);
+        float centerY = Mathf.Lerp(topLeft.y, bottomRight.y, 0.5f);
+
+        return new Vector2(centerX, centerY);
+    }
 
     public int RegionCoordsToRegionIndex(int x, int y)
     {
@@ -998,6 +1095,7 @@ public class SiteData
     public string name;
     public string type;
     public int typeIndex;
+    public int index;
     public Vector2Int coord;
     public Vector2 realPosition;
     public Rect rectangle;
